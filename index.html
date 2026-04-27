@@ -1,245 +1,139 @@
-import {
-  View, Text, StyleSheet, TouchableOpacity, SafeAreaView,
-  TextInput, Alert, ActivityIndicator, KeyboardAvoidingView, Platform,
-  Linking
-} from 'react-native';
-import { useState, useEffect, useRef } from 'react';
-import { supabase } from '../supabase';
-import { API_BASE_URL } from './config';
-import useLockPortrait from './useLockPortrait';
-
-const API_BASE = API_BASE_URL;
-
-export default function AccountCreationScreen({ route, navigation }) {
-  const { address, inspectionId, report, intent, email: prefillEmail } = route.params;
-  // intent: 'save' | 'purchase'
-
-  useLockPortrait();
-
-  const [email, setEmail] = useState(prefillEmail || '');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [processing, setProcessing] = useState(false);
-
-  const passwordRef = useRef(null);
-  const confirmPasswordRef = useRef(null);
-
-  const isSave = intent === 'save';
-
-  useEffect(() => {
-    supabase.auth.getSession().then(async ({ data }) => {
-      const userId = data?.session?.user?.id;
-      if (!userId) return;
-      // Already signed in — link inspection and skip this screen
-      if (inspectionId) {
-        try {
-          await fetch(`${API_BASE}/inspections/${inspectionId}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ user_id: userId }),
-          });
-        } catch {}
-      }
-      if (isSave) {
-        navigation.replace('ReportSaved', { address, inspectionId, report, email: email.trim() });
-      } else {
-        navigation.replace('PaymentGate', { address, inspectionId, report, email: email.trim() });
-      }
-    });
-  }, []);
-
-  const heading = isSave
-    ? 'Create an account to save your report for free'
-    : 'Create an account to purchase your report';
-
-  const sub = isSave
-    ? 'No payment required — your inspection will be saved and accessible anytime from Past Inspections.'
-    : 'Your account keeps your report safe and lets you access it across devices after purchase.';
-
-  const btnLabel = isSave ? 'Save My Report' : 'Continue to Payment';
-
-  async function handleSubmit() {
-    if (!email.trim() || !password.trim() || !confirmPassword.trim()) {
-      Alert.alert('Required', 'Please fill in all fields to continue.');
-      return;
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Amavera — Terms of Service</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      color: #1e293b;
+      background: #fff;
+      line-height: 1.7;
+      padding: 40px 24px 80px;
+      max-width: 720px;
+      margin: 0 auto;
     }
-    if (password.trim().length < 6) {
-      Alert.alert('Password too short', 'Password must be at least 6 characters.');
-      return;
+    h1 {
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 8px;
     }
-    if (password.trim() !== confirmPassword.trim()) {
-      Alert.alert("Passwords don't match", 'Please make sure both passwords are the same.');
-      return;
+    .updated {
+      font-size: 14px;
+      color: #94a3b8;
+      margin-bottom: 40px;
     }
-
-    setProcessing(true);
-
-    try {
-      const { data, error } = await supabase.auth.signUp({
-        email: email.trim(),
-        password: password.trim(),
-      });
-
-      if (error) {
-        Alert.alert('Account error', error.message);
-        return;
-      }
-
-      const userId = data?.user?.id || null;
-
-      // Link userId to inspection
-      if (userId && inspectionId) {
-        try {
-          await fetch(`${API_BASE}/inspections/${inspectionId}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ user_id: userId }),
-          });
-        } catch (err) {
-          console.error('Failed to link userId to inspection:', err);
-        }
-      }
-
-      if (isSave) {
-        navigation.navigate('ReportSaved', { address, inspectionId, report, email: email.trim() });
-      } else {
-        navigation.navigate('PaymentGate', { address, inspectionId, report, email: email.trim() });
-      }
-
-    } catch (err) {
-      Alert.alert('Error', 'Something went wrong. Please try again.');
-      console.error('AccountCreation error:', err);
-    } finally {
-      setProcessing(false);
+    h2 {
+      font-size: 20px;
+      font-weight: 600;
+      margin-top: 36px;
+      margin-bottom: 12px;
     }
-  }
+    p {
+      font-size: 16px;
+      margin-bottom: 16px;
+    }
+    ul {
+      margin-bottom: 16px;
+      padding-left: 24px;
+    }
+    li {
+      font-size: 16px;
+      margin-bottom: 8px;
+    }
+    a {
+      color: #2563eb;
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
 
-  return (
-    <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 24}
-    >
-      <SafeAreaView style={styles.container}>
-        <View style={styles.content}>
+  <h1>Amavera — Terms of Service</h1>
+  <p class="updated">Last updated: April 27, 2026</p>
 
-          <Text style={styles.heading}>{heading}</Text>
-          <Text style={styles.sub}>{sub}</Text>
+  <h2>What Amavera Does</h2>
+  <p>Amavera is a mobile application that helps users document the condition of a residential property using AI-assisted photo capture and analysis. The app generates a structured inspection report based on photos taken by the user during a walkthrough of the property.</p>
+  <p>Amavera is a documentation tool. It records and describes what is visible in the photos you provide. It does not perform a professional property inspection, and it does not replace one.</p>
 
-          <TextInput
-            style={styles.input}
-            placeholder="Email address"
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-            keyboardType="email-address"
-            returnKeyType="next"
-            onSubmitEditing={() => passwordRef.current?.focus()}
-            autoFocus
-            editable={!processing}
-          />
-          <TextInput
-            ref={passwordRef}
-            style={styles.input}
-            placeholder="Create a password (min. 6 characters)"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-            returnKeyType="next"
-            onSubmitEditing={() => confirmPasswordRef.current?.focus()}
-            editable={!processing}
-          />
-          <TextInput
-            ref={confirmPasswordRef}
-            style={styles.input}
-            placeholder="Confirm password"
-            value={confirmPassword}
-            onChangeText={setConfirmPassword}
-            secureTextEntry
-            returnKeyType="done"
-            onSubmitEditing={handleSubmit}
-            editable={!processing}
-          />
+  <h2>Agreement</h2>
+  <p>By using the Amavera app, you agree to these Terms of Service and our <a href="https://alexonlingq-sudo.github.io/amavera-privacy.github.io/">Privacy Policy</a>. If you do not agree, do not use the app.</p>
 
-        </View>
+  <h2>What Amavera Is Not</h2>
+  <p>Amavera does not provide legal advice, professional inspection services, or expert opinions on property condition. Reports generated by Amavera are based on AI interpretation of user-submitted photos and may contain errors, omissions, or inaccuracies.</p>
+  <p>Amavera does not:</p>
+  <ul>
+    <li>Verify the identity of the user or the address of the property</li>
+    <li>Guarantee that a report is complete or that all conditions have been documented</li>
+    <li>Certify the condition of any property</li>
+    <li>Provide legal advice or recommendations regarding security deposits, lease disputes, or any other legal matter</li>
+    <li>Replace a licensed property inspector, home inspector, or any other qualified professional</li>
+  </ul>
+  <p>If you need legal advice, consult an attorney. If you need a professional property inspection, hire a licensed inspector.</p>
 
-        <View style={styles.footer}>
-          <TouchableOpacity
-            style={[styles.btn, processing && styles.btnDisabled]}
-            onPress={handleSubmit}
-            disabled={processing}
-          >
-            {processing
-              ? <ActivityIndicator color="#fff" />
-              : <Text style={styles.btnText}>{btnLabel}</Text>
-            }
-          </TouchableOpacity>
+  <h2>Your Responsibilities</h2>
+  <p>When using Amavera, you are responsible for:</p>
+  <ul>
+    <li>Providing an accurate property address</li>
+    <li>Taking clear, honest photos that represent the actual condition of the property</li>
+    <li>Having legal authorization to be on the property you are documenting</li>
+    <li>Reviewing the generated report for accuracy before relying on it</li>
+    <li>Not using Amavera to misrepresent the condition of a property</li>
+  </ul>
+  <p>You must not use Amavera for any unlawful purpose, to document a property you do not have permission to enter, or to produce fraudulent or misleading documentation.</p>
 
-          <Text style={styles.legalText}>
-            By creating an account, you agree to our{' '}
-            <Text
-              style={styles.legalLink}
-              onPress={() => Linking.openURL('https://alexonlingq-sudo.github.io/amavera-terms.github.io/')}
-            >
-              Terms of Service
-            </Text>
-            {' '}and{' '}
-            <Text
-              style={styles.legalLink}
-              onPress={() => Linking.openURL('https://alexonlingq-sudo.github.io/amavera-privacy.github.io/')}
-            >
-              Privacy Policy
-            </Text>
-            .
-          </Text>
+  <h2>AI-Generated Content</h2>
+  <p>Amavera's inspection reports are generated by artificial intelligence. AI analysis is based on what is visible in the photos you submit. The AI may:</p>
+  <ul>
+    <li>Misidentify rooms, fixtures, or surfaces</li>
+    <li>Fail to detect damage or conditions that are present in a photo</li>
+    <li>Describe conditions inaccurately</li>
+    <li>Assign confidence levels that do not reflect the actual completeness of the inspection</li>
+  </ul>
+  <p>You should review every report for accuracy. Amavera presents its findings with transparency, including confidence scores and explicit statements of limitation, but the AI is not infallible. The report reflects the AI's best interpretation of the photos provided — it is not a statement of fact.</p>
 
-          <TouchableOpacity
-            style={styles.signInLink}
-            onPress={() => navigation.navigate('SignIn', { address, inspectionId, report, intent, email: email.trim() })}
-            disabled={processing}
-          >
-            <Text style={styles.signInLinkText}>Already have an account? Sign in</Text>
-          </TouchableOpacity>
-        </View>
+  <h2>Reports and Immutability</h2>
+  <p>Once a report is finalized, it cannot be altered. The finalized report is timestamped and may carry a cryptographic hash to verify that its contents have not changed since generation. This immutability is a feature designed to preserve the integrity of the document. It also means that errors in a finalized report cannot be corrected — you would need to conduct a new inspection.</p>
 
-      </SafeAreaView>
-    </KeyboardAvoidingView>
-  );
-}
+  <h2>Payment and Credits</h2>
+  <p>Amavera charges a fee to unlock a finalized inspection report. The standard price for a single report is displayed in the app at the time of purchase. Prepaid report credits may be purchased in bundles at a discount. Credits do not expire.</p>
+  <p>Payment is processed through Google Play's in-app purchase system. Amavera does not directly collect or store your payment information.</p>
+  <p>A report is generated before payment. Payment unlocks the ability to download, share, print, and email the report. Once a report has been unlocked, the purchase is final and non-refundable, as the digital content has been fully delivered.</p>
+  <p>If you purchase prepaid credits, unused credits remain in your account indefinitely and can be applied to any future inspection.</p>
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1, backgroundColor: '#fff',
-    paddingHorizontal: 24, paddingBottom: 40,
-    justifyContent: 'space-between',
-  },
-  content: { flex: 1, justifyContent: 'center' },
-  heading: {
-    fontSize: 26, fontWeight: '700', color: '#1e293b',
-    letterSpacing: -0.5, marginBottom: 10,
-  },
-  sub: {
-    fontSize: 15, color: '#64748b', lineHeight: 22, marginBottom: 32,
-  },
-  input: {
-    borderWidth: 2, borderColor: '#e2e8f0', borderRadius: 12,
-    paddingHorizontal: 16, paddingVertical: 14,
-    fontSize: 16, color: '#1e293b', marginBottom: 12,
-  },
-  footer: { paddingTop: 12, gap: 16 },
-  btn: {
-    backgroundColor: '#2563eb', paddingVertical: 18,
-    borderRadius: 14, alignItems: 'center',
-  },
-  btnDisabled: { backgroundColor: '#93c5fd' },
-  btnText: { color: '#fff', fontSize: 17, fontWeight: '600' },
-  signInLink: { alignItems: 'center' },
-  signInLinkText: { color: '#2563eb', fontSize: 15, fontWeight: '500' },
-  legalText: {
-    fontSize: 13, color: '#94a3b8', textAlign: 'center',
-    lineHeight: 18,
-  },
-  legalLink: {
-    color: '#2563eb', textDecorationLine: 'underline',
-  },
-});
+  <h2>Accounts</h2>
+  <p>You are not required to create an account to start an inspection. Account creation occurs at the payment stage. You are responsible for maintaining the security of your account credentials.</p>
+  <p>If you create an account, you can access your past inspections and reports through the app. If you lose access to your account, contact us at support@amavera.app.</p>
+
+  <h2>Your Data</h2>
+  <p>Your photos, inspection data, and reports are your data. Amavera processes your photos through AI services to generate your report. We do not sell your data to third parties. For full details on how we collect, use, and protect your data, see our <a href="https://alexonlingq-sudo.github.io/amavera-privacy.github.io/">Privacy Policy</a>.</p>
+  <p>You grant Amavera a limited license to process your photos and inspection data for the purpose of generating your report and providing the service. This license does not transfer ownership of your content to Amavera.</p>
+
+  <h2>Intellectual Property</h2>
+  <p>The Amavera app, its design, code, and branding are the property of Amavera. You may not copy, modify, distribute, or reverse-engineer the app.</p>
+  <p>The content of your inspection reports — the text, observations, and analysis — is generated for your use. You may share, print, download, and distribute your own reports freely once unlocked.</p>
+
+  <h2>Limitation of Liability</h2>
+  <p>Amavera is provided "as is" without warranties of any kind, express or implied. We do not warrant that reports will be accurate, complete, or suitable for any particular purpose, including use in legal proceedings.</p>
+  <p>To the maximum extent permitted by law, Amavera and its creators shall not be liable for any direct, indirect, incidental, or consequential damages arising from your use of the app or reliance on any report generated by it. This includes, but is not limited to, losses related to security deposit disputes, property damage claims, or legal proceedings.</p>
+  <p>Your use of an Amavera report in any legal, financial, or contractual context is at your own risk and discretion.</p>
+
+  <h2>Indemnification</h2>
+  <p>You agree to indemnify and hold harmless Amavera and its creators from any claims, damages, or expenses arising from your use of the app, your violation of these terms, or your reliance on any report generated by the app.</p>
+
+  <h2>Changes to These Terms</h2>
+  <p>We may update these Terms of Service from time to time. If we make material changes, we will update the "Last updated" date at the top of this document. Your continued use of the app after changes are posted constitutes acceptance of the updated terms.</p>
+
+  <h2>Termination</h2>
+  <p>We reserve the right to suspend or terminate your access to Amavera at our discretion if you violate these terms. You may stop using the app at any time.</p>
+
+  <h2>Governing Law</h2>
+  <p>These terms are governed by the laws of the State of Oregon, United States, without regard to conflict of law principles.</p>
+
+  <h2>Contact</h2>
+  <p>If you have questions about these Terms of Service, contact us at support@amavera.app.</p>
+
+</body>
+</html>
